@@ -18,8 +18,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = (
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = False
-app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = True
+app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "it's a secret")
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 toolbar = DebugToolbarExtension(app)
 
 connect_db(app)
@@ -112,8 +113,11 @@ def login():
 @app.route('/logout')
 def logout():
     """Handle logout of user."""
+    
+    do_logout()
+    flash("You have logged out.", "success")
 
-    # IMPLEMENT THIS
+    return redirect("/")
 
 
 ##############################################################################
@@ -311,12 +315,12 @@ def homepage():
 #
 # https://stackoverflow.com/questions/34066804/disabling-caching-in-flask
 
-@app.after_request
-def add_header(req):
-    """Add non-caching headers on every request."""
+# @app.after_request
+# def add_header(req):
+#     """Add non-caching headers on every request."""
 
-    req.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    req.headers["Pragma"] = "no-cache"
-    req.headers["Expires"] = "0"
-    req.headers['Cache-Control'] = 'public, max-age=0'
-    return req
+#     req.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+#     req.headers["Pragma"] = "no-cache"
+#     req.headers["Expires"] = "0"
+#     req.headers['Cache-Control'] = 'public, max-age=0'
+#     return req
