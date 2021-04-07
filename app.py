@@ -228,11 +228,13 @@ def profile():
     if form.validate():
         if User.authenticate(g.user.username, form.password.data):
 
-            g.user.username = form.username.data,
-            g.user.email = form.email.data,
-            g.user.image_url = form.image_url.data,
-            g.user.header_image_url = form.header_image_url.data,
-            g.user.bio = form.bio.data,
+            g.user.username = form.username.data
+            g.user.email = form.email.data
+            g.user.image_url = form.image_url.data
+            g.user.header_image_url = form.header_image_url.data
+            g.user.bio = form.bio.data
+            g.user.location = form.location.data
+
 
             db.session.commit()
 
@@ -298,10 +300,7 @@ def remove_like(message_id):
 
 @app.route('/users/<int:user_id>/likes')
 def show_likes(user_id):
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
+    """ Show a list of user's liked messages. """
     
     user = User.query.get_or_404(user_id)
     messages = user.likes
