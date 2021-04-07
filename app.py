@@ -144,6 +144,10 @@ def list_users():
 def users_show(user_id):
     """Show user profile."""
 
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
     user = User.query.get_or_404(user_id)
 
     # snagging messages in order from the database;
@@ -292,8 +296,6 @@ def remove_like(message_id):
 
     return redirect("/")
 
-
-
 @app.route('/users/<int:user_id>/likes')
 def show_likes(user_id):
 
@@ -301,9 +303,10 @@ def show_likes(user_id):
         flash("Access unauthorized.", "danger")
         return redirect("/")
     
-    messages = Likes.query.filter_by(user_id=user_id)
+    user = User.query.get_or_404(user_id)
+    messages = user.likes
 
-    return render_template("/users/likes.html", messages=messages)
+    return render_template("/users/likes.html", user=user, messages=messages)
 
 
 ##############################################################################
@@ -331,7 +334,6 @@ def messages_add():
 
     return render_template('messages/new.html', form=form)
 
-
 @app.route('/messages/<int:message_id>', methods=["GET"])
 def messages_show(message_id):
     """Show a message."""
@@ -354,10 +356,8 @@ def messages_destroy(message_id):
 
     return redirect(f"/users/{g.user.id}")
 
-
 ##############################################################################
 # Homepage and error pages
-
 
 @app.route('/')
 def homepage():
