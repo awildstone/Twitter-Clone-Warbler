@@ -274,12 +274,8 @@ def add_like(message_id):
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    new_like = Likes(
-        user_id = g.user.id,
-        message_id = message_id
-        )
-
-    db.session.add(new_like)
+    liked_message = Message.query.get_or_404(message_id)
+    g.user.likes.append(liked_message)
     db.session.commit()
 
     return redirect("/")
@@ -292,8 +288,8 @@ def remove_like(message_id):
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    curr_like = Likes.query.filter_by(user_id=g.user.id, message_id=message_id).first()
-    db.session.delete(curr_like)
+    unliked_message = Message.query.get_or_404(message_id)
+    g.user.likes.remove(unliked_message)
     db.session.commit()
 
     return redirect("/")
