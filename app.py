@@ -5,7 +5,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
 from forms import UserAddForm, LoginForm, MessageForm, EditUserForm
-from models import db, connect_db, User, Message
+from models import db, connect_db, User, Message, Likes
 
 CURR_USER_KEY = "curr_user"
 
@@ -215,7 +215,6 @@ def stop_following(follow_id):
 def profile():
     """Update profile for current user."""
 
-    # IMPLEMENT THIS
     if not g.user:
         flash("Access unauthorized.", "danger")
         return redirect("/")
@@ -258,6 +257,24 @@ def delete_user():
 
     return redirect("/signup")
 
+@app.route('/users/add_like/<message_id>', methods=["POST"])
+def add_like(message_id):
+    """ Add a like """
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    else:
+        new_like = Likes(
+            user_id = g.user.id,
+            message_id = message_id
+        )
+
+        db.session.add(new_like)
+        db.session.commit()
+
+        return redirect("/")
 
 ##############################################################################
 # Messages routes:
@@ -321,13 +338,17 @@ def homepage():
     """
 
     if g.user:
-        messages = (Message
-                    .query
-                    .order_by(Message.timestamp.desc())
-                    .limit(100)
-                    .all())
+        all_messages =  Message.query.order_by(Message.timestamp.desc()).all()
 
-        return render_template('home.html', messages=messages)
+        messages = [msg for msg in all_messages if g.user.is_following(msg.user) or msg.user.id == g.user.id]
+        messages = messages[0:100]
+        # messages = (Message
+        #             .query
+        #             .order_by(Message.timestamp.desc())
+        #             .limit(100)
+        #             .all())
+
+        return render_template('home.html', messages=messages, curr_user_id=g.user.id)
 
     else:
         return render_template('home-anon.html')
