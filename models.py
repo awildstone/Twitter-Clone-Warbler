@@ -129,6 +129,12 @@ class User(db.Model):
 
         found_user_list = [user for user in self.following if user == other_user]
         return len(found_user_list) == 1
+    
+    def is_liked(self, message_id):
+        """Does this user currently like this message?"""
+
+        does_user_like = [like for like in self.likes if like.id == message_id]
+        return len(does_user_like) == 1
 
     @classmethod
     def signup(cls, username, email, password, image_url):

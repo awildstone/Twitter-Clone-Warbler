@@ -257,7 +257,7 @@ def delete_user():
 
     return redirect("/signup")
 
-@app.route('/users/add_like/<message_id>', methods=["POST"])
+@app.route('/users/like/<int:message_id>', methods=["POST"])
 def add_like(message_id):
     """ Add a like """
 
@@ -265,7 +265,15 @@ def add_like(message_id):
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
+    if g.user.is_liked(message_id):
+        # like is already liked, delete the like
+        curr_like = Likes.query.filter_by(user_id=g.user.id, message_id=message_id).first()
+        db.session.delete(curr_like)
+        db.session.commit()
+
+        return redirect("/")
     else:
+        # like not liked, add like
         new_like = Likes(
             user_id = g.user.id,
             message_id = message_id
