@@ -17,7 +17,6 @@
                   <img src="{{ follower.image_url }}" alt="Image for {{ follower.username }}" class="card-image">
                   <p>@{{ follower.username }}</p>
                 </a>
-
                 {% if g.user.is_following(follower) %}
                   <form method="POST"
                         action="/users/stop-following/{{ follower.id }}">

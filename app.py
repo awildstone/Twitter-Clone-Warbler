@@ -257,7 +257,10 @@ def delete_user():
 
     return redirect("/signup")
 
-@app.route('/users/like/<int:message_id>', methods=["POST"])
+##############################################################################
+# Like routes:
+
+@app.route('/users/add_like/<int:message_id>', methods=["POST"])
 def add_like(message_id):
     """ Add a like """
 
@@ -265,24 +268,43 @@ def add_like(message_id):
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
-    if g.user.is_liked(message_id):
-        # like is already liked, delete the like
-        curr_like = Likes.query.filter_by(user_id=g.user.id, message_id=message_id).first()
-        db.session.delete(curr_like)
-        db.session.commit()
-
-        return redirect("/")
-    else:
-        # like not liked, add like
-        new_like = Likes(
-            user_id = g.user.id,
-            message_id = message_id
+    new_like = Likes(
+        user_id = g.user.id,
+        message_id = message_id
         )
 
-        db.session.add(new_like)
-        db.session.commit()
+    db.session.add(new_like)
+    db.session.commit()
 
+    return redirect("/")
+
+@app.route('/users/remove_like/<int:message_id>', methods=["POST"])
+def remove_like(message_id):
+    """ Remove Like """
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
         return redirect("/")
+
+    curr_like = Likes.query.filter_by(user_id=g.user.id, message_id=message_id).first()
+    db.session.delete(curr_like)
+    db.session.commit()
+
+    return redirect("/")
+
+
+
+@app.route('/users/<int:user_id>/likes')
+def show_likes(user_id):
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+    
+    messages = Likes.query.filter_by(user_id=user_id)
+
+    return render_template("/users/likes.html", messages=messages)
+
 
 ##############################################################################
 # Messages routes:
