@@ -131,8 +131,8 @@ class MessageModelTestCase(TestCase):
         self.assertEqual(likes[0].message_id.text, "A new message from a new user")
 
 
-    def test_associate_new_likes(self):
-        """ Does the Model associate likes with correct message and user? """
+    def test_associate_user_likes(self):
+        """ Does the Model associate likes with correct user? """
 
         testlike1 = self.user1.likes.append(self.message2)
         testlike2 = self.user2.likes.append(self.message1)
@@ -143,5 +143,17 @@ class MessageModelTestCase(TestCase):
         self.assertEqual(len(likes), 2)
         self.assertEqual(likes[0].user_id, self.user1.id)
         self.assertEqual(likes[1].user_id, self.user2.id)
+
+    
+    def test_associate_message_likes(self):
+        """ Does the Model associate likes with correct message? """
+
+        testlike1 = self.user2.likes.append(self.message2)
+        testlike2 = self.user2.likes.append(self.message1)
+        db.session.commit()
+
+        likes = Likes.query.all()
+        self.assertEqual(len(likes), 2)
         self.assertEqual(likes[0].message_id, self.message2.id)
         self.assertEqual(likes[1].message_id, self.message1.id)
+
