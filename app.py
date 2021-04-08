@@ -3,6 +3,7 @@ import os
 from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import or_
 
 from forms import UserAddForm, LoginForm, MessageForm, EditUserForm
 from models import db, connect_db, User, Message, Likes
@@ -235,7 +236,6 @@ def profile():
             g.user.bio = form.bio.data
             g.user.location = form.location.data
 
-
             db.session.commit()
 
             flash("User profile updated.", "success")
@@ -262,9 +262,6 @@ def delete_user():
     db.session.commit()
 
     return redirect("/signup")
-
-##############################################################################
-# Like routes:
 
 @app.route('/users/add_like/<int:message_id>', methods=["POST"])
 def add_like(message_id):
@@ -363,15 +360,15 @@ def homepage():
     """
 
     if g.user:
-        all_messages =  Message.query.order_by(Message.timestamp.desc()).all()
 
-        messages = [msg for msg in all_messages if g.user.is_following(msg.user) or msg.user.id == g.user.id]
-        messages = messages[0:100]
-        # messages = (Message
-        #             .query
-        #             .order_by(Message.timestamp.desc())
-        #             .limit(100)
-        #             .all())
+        followed_ids = [user.id for user in g.user.following] + [g.user.id]
+
+        messages = (Message
+                .query
+                .filter(or_(Message.user_id == g.user.id, Message.user_id.in_(followed_ids)))
+                .order_by(Message.timestamp.desc())
+                .limit(100)
+                .all())
 
         return render_template('home.html', messages=messages, curr_user_id=g.user.id)
 
