@@ -259,6 +259,20 @@ class UserViewTestCase(TestCase):
 
             self.assertEqual(res.status_code, 200)
             self.assertEqual(len(all_users), 3)
+
+    def test_delete_user_no_auth(self):
+        """ Does delete_user() prevent access for unauthed users? """
+
+        with self.client as c:
+            
+            res = c.post("/users/delete", follow_redirects=True)
+
+            all_users = User.query.all()
+
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(len(all_users), 4)
+            self.assertIn(b"Access unauthorized.", res.data)
+
     
     def test_user_add_like(self):
         """ Can an authed user add a new like? """
@@ -298,6 +312,7 @@ class UserViewTestCase(TestCase):
 
             self.assertEqual(res.status_code, 200)
             self.assertEqual(len(all_likes), 0)
+            self.assertIn(b"Access unauthorized.", res.data)
 
 
     def test_user_remove_like(self):
@@ -313,7 +328,6 @@ class UserViewTestCase(TestCase):
         db.session.commit()
 
         #create test likes
-
         like1 = Likes(user_id=self.user1.id, message_id=msg1.id)
         like2 = Likes(user_id=self.user1.id, message_id=msg2.id)
 
@@ -332,7 +346,31 @@ class UserViewTestCase(TestCase):
             self.assertEqual(len(user1.likes), 1)
             self.assertEqual(user1.likes[0].id, 3)
             self.assertEqual(user1.likes[0].user_id, 22)
+    
+    def test_user_remove_like_no_auth(self):
+        """ Does remove_like(message_id) prevent unauthed users from removing likes? """
 
+        #create test messages
+        msg1 = Message(text="Test message for user 2!", user_id=self.user2.id)
+        msg1.id = 2
+        msg2 = Message(text="Another message for user 2!", user_id=self.user2.id)
+        msg2.id = 3
 
+        db.session.add_all([msg1, msg2])
+        db.session.commit()
 
+        #create test likes
+        like1 = Likes(user_id=self.user1.id, message_id=msg1.id)
+        like2 = Likes(user_id=self.user1.id, message_id=msg2.id)
 
+        db.session.add_all([like1, like2])
+        db.session.commit()
+
+        with self.client as c:
+
+            res = c.post("/users/remove_like/2", follow_redirects=True)
+
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(len(Message.query.all()), 2)
+            self.assertEqual(len(Likes.query.all()), 2)
+            self.assertIn(b"Access unauthorized.", res.data)

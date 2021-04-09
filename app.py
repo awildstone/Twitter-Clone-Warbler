@@ -290,6 +290,10 @@ def remove_like(message_id):
 @app.route('/users/<int:user_id>/likes')
 def show_likes(user_id):
     """ Show a list of user's liked messages. """
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
     
     user = User.query.get_or_404(user_id)
     messages = user.likes
