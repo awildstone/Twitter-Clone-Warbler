@@ -145,10 +145,6 @@ def list_users():
 def users_show(user_id):
     """Show user profile."""
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
-
     user = User.query.get_or_404(user_id)
 
     # snagging messages in order from the database;

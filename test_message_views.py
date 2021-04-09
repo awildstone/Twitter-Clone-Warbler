@@ -40,9 +40,6 @@ class MessageViewTestCase(TestCase):
         """Create test client, add sample data."""
         db.create_all()
 
-        User.query.delete()
-        Message.query.delete()
-
         self.client = app.test_client()
 
         self.testuser = User.signup(username="testuser",
@@ -81,7 +78,7 @@ class MessageViewTestCase(TestCase):
             self.assertEqual(msg.text, "Hello")
     
     def test_add_msg_without_session(self):
-        """ Can messages_add() add a message without a valid user session? """
+        """ Does messages_add() prevent adding a message without a valid user session? """
         with self.client as c:
             res = c.post("/messages/new", data={"text": "Hello"}, follow_redirects=True)
 
@@ -90,7 +87,7 @@ class MessageViewTestCase(TestCase):
             self.assertIn(b'Access unauthorized.', res.data)
 
     def test_add_msg_invalid_user(self):
-        """ Can messages_add() add a message with an invalid user? """
+        """ Does messages_add() prevent adding a message with an invalid user? """
         with self.client as c:
             with c.session_transaction() as sess:
                 sess[CURR_USER_KEY] = 99
@@ -133,7 +130,7 @@ class MessageViewTestCase(TestCase):
             self.assertIn(b'@testuser', res.data)
     
     def test_view_invalid_msg(self):
-        """ Does messages_show(message_id) show the details for an invalid msg? """
+        """ Does messages_show(message_id) handle request for an invalid msg? """
         with self.client as c:
             with c.session_transaction() as sess:
                 sess[CURR_USER_KEY] = self.testuser.id
@@ -162,7 +159,7 @@ class MessageViewTestCase(TestCase):
             self.assertEqual(len(Message.query.all()), 0)
     
     def test_delete_msg_invalid_user(self):
-        """ Does messages_destroy(message_id) delete a msg when the user is invalid? """
+        """ Does messages_destroy(message_id) prevent deleting a msg when the user is invalid? """
         #create a test msg & unauthorized user
         new_msg = Message(id=10, text="My Test MSG", user_id=self.testuser.id) #test user created this msg
         wrong_user = User.signup(username="faker", email="faker@test.com", password="fakeuser", image_url=None)
@@ -181,7 +178,7 @@ class MessageViewTestCase(TestCase):
             self.assertIn(b"Access unauthorized.", res.data)
     
     def test_delete_msg_no_auth(self):
-        """ Does messages_destroy(message_id) delete msg with no user authentication? """
+        """ Does messages_destroy(message_id) prevent deleting msg with no user authentication? """
 
         new_msg = Message(id=10, text="My Test MSG", user_id=self.testuser.id)
         db.session.add(new_msg)
