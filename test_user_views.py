@@ -3,7 +3,7 @@
 
 import os
 from unittest import TestCase
-from models import db, connect_db, Message, User, Follows
+from models import db, connect_db, Message, User, Follows, Likes
 
 #set DB environment to test DB
 os.environ['DATABASE_URL'] = "postgresql:///warbler-test"
@@ -162,7 +162,7 @@ class UserViewTestCase(TestCase):
             with c.session_transaction() as sess:
                 sess[CURR_USER_KEY] = self.user1.id
             
-            res = c.post("/users/follow/45", data={}, follow_redirects=True)
+            res = c.post("/users/follow/45", follow_redirects=True)
 
             self.assertEqual(res.status_code, 200)
             self.assertEqual(len(Follows.query.all()), 1)
@@ -174,7 +174,7 @@ class UserViewTestCase(TestCase):
 
         with self.client as c:
 
-            res = c.post("/users/follow/45", data={}, follow_redirects=True)
+            res = c.post("/users/follow/45", follow_redirects=True)
 
             self.assertEqual(res.status_code, 200)
             self.assertIn(b"Access unauthorized.", res.data)
@@ -194,7 +194,7 @@ class UserViewTestCase(TestCase):
             with c.session_transaction() as sess:
                 sess[CURR_USER_KEY] = self.user1.id
             
-            res = c.post("/users/stop-following/31", data={}, follow_redirects=True)
+            res = c.post("/users/stop-following/31", follow_redirects=True)
 
             self.assertEqual(res.status_code, 200)
             self.assertEqual(len(Follows.query.all()), 2)
@@ -216,7 +216,7 @@ class UserViewTestCase(TestCase):
 
         with self.client as c:
             
-            res = c.post("/users/stop-following/31", data={}, follow_redirects=True)
+            res = c.post("/users/stop-following/31", follow_redirects=True)
 
             self.assertEqual(res.status_code, 200)
             self.assertEqual(len(Follows.query.all()), 3)
@@ -245,6 +245,94 @@ class UserViewTestCase(TestCase):
 
             self.assertEqual(res.status_code, 200)
             self.assertIn(b"Access unauthorized.", res.data)
+
+    def test_delete_user(self):
+        """ Can the authed user delete themself? """
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.user1.id
+
+            res = c.post("/users/delete", follow_redirects=True)
+
+            all_users = User.query.all()
+
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(len(all_users), 3)
     
     def test_user_add_like(self):
         """ Can an authed user add a new like? """
+
+        #create new test message
+        msg = Message(text="Test message for user 2!", user_id=self.user2.id)
+        msg.id = 5
+        db.session.add(msg)
+        db.session.commit()
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.user1.id
+
+            res = c.post("/users/add_like/5", follow_redirects=True)
+
+            user1 = User.query.get(10)
+
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(len(user1.likes), 1)
+            self.assertEqual(user1.likes[0].id, 5)
+            self.assertEqual(user1.likes[0].user_id, 22)
+
+    def test_user_add_like_no_auth(self):
+        """ Does add_like(message_id) prevent a unauthed user from adding a like? """
+
+        #create new test message
+        msg = Message(text="Test message for user 2!", user_id=self.user2.id)
+        msg.id = 5
+        db.session.add(msg)
+        db.session.commit()
+
+        with self.client as c:
+            res = c.post("/users/add_like/5", follow_redirects=True)
+
+            all_likes = Likes.query.all()
+
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(len(all_likes), 0)
+
+
+    def test_user_remove_like(self):
+        """ Can an authed user remove one of their likes? """
+
+        #create test messages
+        msg1 = Message(text="Test message for user 2!", user_id=self.user2.id)
+        msg1.id = 2
+        msg2 = Message(text="Another message for user 2!", user_id=self.user2.id)
+        msg2.id = 3
+
+        db.session.add_all([msg1, msg2])
+        db.session.commit()
+
+        #create test likes
+
+        like1 = Likes(user_id=self.user1.id, message_id=msg1.id)
+        like2 = Likes(user_id=self.user1.id, message_id=msg2.id)
+
+        db.session.add_all([like1, like2])
+        db.session.commit()
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.user1.id
+
+            res = c.post("/users/remove_like/2", follow_redirects=True)
+
+            user1 = User.query.get(10)
+
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(len(user1.likes), 1)
+            self.assertEqual(user1.likes[0].id, 3)
+            self.assertEqual(user1.likes[0].user_id, 22)
+
+
+
+
