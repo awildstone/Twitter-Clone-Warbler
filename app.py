@@ -4,6 +4,7 @@ from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
+from functools import wraps
 
 from forms import UserAddForm, LoginForm, MessageForm, EditUserForm
 from models import db, connect_db, User, Message, Likes
@@ -54,6 +55,14 @@ def do_logout():
     if CURR_USER_KEY in session:
         del session[CURR_USER_KEY]
 
+def auth_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not g.user:
+            flash("Access unauthorized.", "danger")
+            return redirect("/")
+        return f(*args, **kwargs)
+    return decorated_function 
 
 @app.route('/signup', methods=["GET", "POST"])
 def signup():
@@ -159,36 +168,27 @@ def users_show(user_id):
 
 
 @app.route('/users/<int:user_id>/following')
+@auth_required
 def show_following(user_id):
     """Show list of people this user is following."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     user = User.query.get_or_404(user_id)
     return render_template('users/following.html', user=user)
 
 
 @app.route('/users/<int:user_id>/followers')
+@auth_required
 def users_followers(user_id):
     """Show list of followers of this user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     user = User.query.get_or_404(user_id)
     return render_template('users/followers.html', user=user)
 
 
 @app.route('/users/follow/<int:follow_id>', methods=['POST'])
+@auth_required
 def add_follow(follow_id):
     """Add a follow for the currently-logged-in user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     followed_user = User.query.get_or_404(follow_id)
     g.user.following.append(followed_user)
@@ -198,12 +198,9 @@ def add_follow(follow_id):
 
 
 @app.route('/users/stop-following/<int:follow_id>', methods=['POST'])
+@auth_required
 def stop_following(follow_id):
     """Have currently-logged-in-user stop following this user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     followed_user = User.query.get(follow_id)
     g.user.following.remove(followed_user)
@@ -213,12 +210,9 @@ def stop_following(follow_id):
 
 
 @app.route('/users/profile', methods=["GET", "POST"])
+@auth_required
 def profile():
     """Update profile for current user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     form = EditUserForm(obj=g.user)
 
@@ -245,12 +239,9 @@ def profile():
 
 
 @app.route('/users/delete', methods=["POST"])
+@auth_required
 def delete_user():
     """Delete user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     do_logout()
 
@@ -260,12 +251,9 @@ def delete_user():
     return redirect("/signup")
 
 @app.route('/users/add_like/<int:message_id>', methods=["POST"])
+@auth_required
 def add_like(message_id):
     """ Add a like """
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     liked_message = Message.query.get_or_404(message_id)
     g.user.likes.append(liked_message)
@@ -274,12 +262,9 @@ def add_like(message_id):
     return redirect("/")
 
 @app.route('/users/remove_like/<int:message_id>', methods=["POST"])
+@auth_required
 def remove_like(message_id):
     """ Remove Like """
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     unliked_message = Message.query.get_or_404(message_id)
     g.user.likes.remove(unliked_message)
@@ -288,12 +273,9 @@ def remove_like(message_id):
     return redirect("/")
 
 @app.route('/users/<int:user_id>/likes')
+@auth_required
 def show_likes(user_id):
     """ Show a list of user's liked messages. """
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
     
     user = User.query.get_or_404(user_id)
     messages = user.likes
@@ -305,15 +287,12 @@ def show_likes(user_id):
 # Messages routes:
 
 @app.route('/messages/new', methods=["GET", "POST"])
+@auth_required
 def messages_add():
     """Add a message:
 
     Show form if GET. If valid, update message and redirect to user page.
     """
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     form = MessageForm()
 
@@ -335,12 +314,9 @@ def messages_show(message_id):
 
 
 @app.route('/messages/<int:message_id>/delete', methods=["POST"])
+@auth_required
 def messages_destroy(message_id):
     """Delete a message."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     msg = Message.query.get_or_404(message_id)
 
@@ -379,21 +355,3 @@ def homepage():
 
     else:
         return render_template('home-anon.html')
-
-
-##############################################################################
-# Turn off all caching in Flask
-#   (useful for dev; in production, this kind of stuff is typically
-#   handled elsewhere)
-#
-# https://stackoverflow.com/questions/34066804/disabling-caching-in-flask
-
-# @app.after_request
-# def add_header(req):
-#     """Add non-caching headers on every request."""
-
-#     req.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-#     req.headers["Pragma"] = "no-cache"
-#     req.headers["Expires"] = "0"
-#     req.headers['Cache-Control'] = 'public, max-age=0'
-#     return req
