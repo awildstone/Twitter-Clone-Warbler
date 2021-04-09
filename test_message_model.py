@@ -128,7 +128,6 @@ class MessageModelTestCase(TestCase):
         self.assertEqual(len(likes), 1)
         self.assertEqual(likes[0].user_id, new_user.id)
         self.assertEqual(likes[0].message_id, new_msg.id)
-        self.assertEqual(likes[0].message_id.text, "A new message from a new user")
 
 
     def test_associate_user_likes(self):
