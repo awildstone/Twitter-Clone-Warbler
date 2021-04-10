@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, render_template, request, flash, redirect, session, g
+from flask import Flask, render_template, request, flash, redirect, session, g, url_for
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
@@ -55,6 +55,8 @@ def do_logout():
     if CURR_USER_KEY in session:
         del session[CURR_USER_KEY]
 
+# I created this custom decorator function so I could replace the user authenication code from all of the routes.
+# https://flask.palletsprojects.com/en/1.1.x/patterns/viewdecorators/
 def auth_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
