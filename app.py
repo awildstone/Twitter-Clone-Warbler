@@ -62,7 +62,7 @@ def auth_required(f):
     def decorated_function(*args, **kwargs):
         if not g.user:
             flash("Access unauthorized.", "danger")
-            return redirect("/")
+            return redirect(url_for('homepage'))
         return f(*args, **kwargs)
     return decorated_function 
 
@@ -96,7 +96,7 @@ def signup():
 
         do_login(user)
 
-        return redirect("/")
+        return redirect(url_for('homepage'))
 
     else:
         return render_template('users/signup.html', form=form)
@@ -115,7 +115,7 @@ def login():
         if user:
             do_login(user)
             flash(f"Hello, {user.username}!", "success")
-            return redirect("/")
+            return redirect(url_for('homepage'))
 
         flash("Invalid credentials.", 'danger')
 
@@ -129,7 +129,7 @@ def logout():
     do_logout()
     flash("You have logged out.", "success")
 
-    return redirect("/")
+    return redirect(url_for('homepage'))
 
 
 ##############################################################################
@@ -196,7 +196,8 @@ def add_follow(follow_id):
     g.user.following.append(followed_user)
     db.session.commit()
 
-    return redirect(f"/users/{g.user.id}/following")
+    # return redirect(f"/users/{g.user.id}/following")
+    return redirect(url_for('show_following', user_id=g.user.id))
 
 
 @app.route('/users/stop-following/<int:follow_id>', methods=['POST'])
@@ -208,7 +209,8 @@ def stop_following(follow_id):
     g.user.following.remove(followed_user)
     db.session.commit()
 
-    return redirect(f"/users/{g.user.id}/following")
+    # return redirect(f"/users/{g.user.id}/following")
+    return redirect(url_for('show_following', user_id=g.user.id))
 
 
 @app.route('/users/profile', methods=["GET", "POST"])
@@ -231,7 +233,8 @@ def profile():
             db.session.commit()
 
             flash("User profile updated.", "success")
-            return redirect(f"/users/{g.user.id}")
+            # return redirect(f"/users/{g.user.id}")
+            return redirect(url_for('users_show', user_id=g.user.id))
 
         form.password.errors.append("Wrong password, please try again.")
 
@@ -251,7 +254,8 @@ def edit_password():
             g.user.password = new_hashed_pwd
             db.session.commit()
             flash("Password updated.", "success")
-            return redirect("/users/profile")
+            # return redirect("/users/profile")
+            return redirect(url_for('profile'))
 
         form.current_password.errors.append("Wrong current password, please try again.")
 
@@ -268,7 +272,7 @@ def delete_user():
     db.session.delete(g.user)
     db.session.commit()
 
-    return redirect("/signup")
+    return redirect(url_for('signup'))
 
 @app.route('/users/add_like/<int:message_id>', methods=["POST"])
 @auth_required
@@ -279,7 +283,7 @@ def add_like(message_id):
     g.user.likes.append(liked_message)
     db.session.commit()
 
-    return redirect("/")
+    return redirect(url_for('homepage'))
 
 @app.route('/users/remove_like/<int:message_id>', methods=["POST"])
 @auth_required
@@ -290,7 +294,7 @@ def remove_like(message_id):
     g.user.likes.remove(unliked_message)
     db.session.commit()
 
-    return redirect("/")
+    return redirect(url_for('homepage'))
 
 @app.route('/users/<int:user_id>/likes')
 @auth_required
@@ -321,7 +325,8 @@ def messages_add():
         g.user.messages.append(msg)
         db.session.commit()
 
-        return redirect(f"/users/{g.user.id}")
+        # return redirect(f"/users/{g.user.id}")
+        return redirect(url_for('users_show', user_id=g.user.id))
 
     return render_template('messages/new.html', form=form)
 
@@ -342,12 +347,13 @@ def messages_destroy(message_id):
 
     if msg.user_id != g.user.id:
         flash("Access unauthorized.", "danger")
-        return redirect("/")
+        return redirect(url_for('homepage'))
 
     db.session.delete(msg)
     db.session.commit()
 
-    return redirect(f"/users/{g.user.id}")
+    # return redirect(f"/users/{g.user.id}")
+    return redirect(url_for('users_show', user_id=g.user.id))
 
 ##############################################################################
 # Homepage and error pages
