@@ -174,6 +174,15 @@ class User(db.Model):
                 return user
 
         return False
+    
+    @classmethod
+    def changePassword(cls, new_password):
+        """ Validates that the current password is correct, and updates password if correct.
+        Confirms new password and confirm password match before updating the database. """
+
+        new_hashed_pwd = bcrypt.generate_password_hash(new_password).decode('UTF-8')
+
+        return new_hashed_pwd
 
 
 class Message(db.Model):

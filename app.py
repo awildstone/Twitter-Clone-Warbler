@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import or_
 from functools import wraps
 
-from forms import UserAddForm, LoginForm, MessageForm, EditUserForm
+from forms import UserAddForm, LoginForm, MessageForm, EditUserForm, ChangePasswordForm
 from models import db, connect_db, User, Message, Likes
 
 CURR_USER_KEY = "curr_user"
@@ -233,11 +233,29 @@ def profile():
             flash("User profile updated.", "success")
             return redirect(f"/users/{g.user.id}")
 
-        else:
-            flash("Access unauthorized.", "danger")
-            return redirect("/")
+        form.password.errors.append("Wrong password, please try again.")
 
     return render_template("users/edit.html", form=form, user_id=g.user.id)
+
+@app.route('/users/edit-password', methods=["GET", "POST"])
+@auth_required
+def edit_password():
+    """Edit password for current user."""
+
+    form = ChangePasswordForm(obj=g.user)
+
+    if form.validate():
+        if User.authenticate(g.user.username, form.current_password.data):
+
+            new_hashed_pwd = User.changePassword(form.new_password.data)
+            g.user.password = new_hashed_pwd
+            db.session.commit()
+            flash("Password updated.", "success")
+            return redirect("/users/profile")
+
+        form.current_password.errors.append("Wrong current password, please try again.")
+
+    return render_template("users/edit-password.html", form=form, user_id=g.user.id)
 
 
 @app.route('/users/delete', methods=["POST"])
